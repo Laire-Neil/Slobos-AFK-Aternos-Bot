@@ -1607,10 +1607,15 @@ function initializeModules(bot, mcData, defaultMove) {
   if (config.utils["auto-auth"] && config.utils["auto-auth"].enabled) {
     const password = config.utils["auto-auth"].password;
     let authHandled = false;
+    let authFallbackTimer = null;
 
     const tryAuth = (type) => {
       if (authHandled || !bot || !botState.connected) return;
       authHandled = true;
+      if (authFallbackTimer) {
+        clearTimeout(authFallbackTimer);
+        authFallbackTimer = null;
+      }
       if (type === "register") {
         bot.chat(`/register ${password} ${password}`);
         addLog("[Auth] Detected register prompt - sent /register");
@@ -1638,15 +1643,30 @@ function initializeModules(bot, mcData, defaultMove) {
       }
     });
 
-    // Failsafe: if no prompt after 10s, try login anyway
-    setTimeout(() => {
+    // Failsafe: if no prompt after 10s, try register first, then login.
+    authFallbackTimer = setTimeout(() => {
       if (!authHandled && bot && botState.connected) {
         addLog(
-          "[Auth] No prompt detected after 10s, sending /login as failsafe",
+          "[Auth] No prompt detected after 10s, trying /register then /login as failsafe",
         );
-        bot.chat(`/login ${password}`);
-        authHandled = true;
-          botState.commandReadyAt = Date.now() + 5000;
+        try {
+          bot.chat(`/register ${password} ${password}`);
+          addLog("[Auth] Failsafe /register sent");
+        } catch (e) {
+          addLog(`[Auth] Failsafe /register failed: ${e.message}`);
+        }
+
+        setTimeout(() => {
+          if (bot && botState.connected && !authHandled) {
+            try {
+              bot.chat(`/login ${password}`);
+              addLog("[Auth] Failsafe /login sent");
+              authHandled = true;
+            } catch (e) {
+              addLog(`[Auth] Failsafe /login failed: ${e.message}`);
+            }
+          }
+        }, 5000);
       }
     }, 10000);
   }
