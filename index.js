@@ -1359,39 +1359,73 @@ function createBot() {
         }
       }
 
-      async function handlePickaxeRequest(username, message, isPrivate = false) {
+      function normalizeRequestedItem(message) {
+        const text = String(message || '').toLowerCase();
+
+        const aliases = [
+          { pattern: /diamond\s+axe|diamond_axe/, item: 'minecraft:diamond_axe' },
+          { pattern: /diamond\s+pickaxe|diamond_pickaxe/, item: 'minecraft:diamond_pickaxe' },
+          { pattern: /diamond\s+shovel|diamond_shovel/, item: 'minecraft:diamond_shovel' },
+          { pattern: /diamond\s+sword|diamond_sword/, item: 'minecraft:diamond_sword' },
+          { pattern: /diamond\s+hoe|diamond_hoe/, item: 'minecraft:diamond_hoe' },
+          { pattern: /enchanted\s+golden\s+apple|enchanted_golden_apple|god\s*apple/, item: 'minecraft:enchanted_golden_apple' },
+        ];
+
+        for (const entry of aliases) {
+          if (entry.pattern.test(text)) return entry.item;
+        }
+
+        const giveMatch = text.match(/(?:give me|i need|can i have|please give)\s+(?:an?\s+|the\s+)?(.+?)(?:\s*(?:please|now|thx|thanks)\b|$)/i);
+        if (!giveMatch) return null;
+
+        const requested = giveMatch[1]
+          .replace(/[^a-z0-9_\s]/g, ' ')
+          .replace(/\s+/g, '_')
+          .replace(/^_+|_+$/g, '');
+
+        if (!requested) return null;
+        return requested.startsWith('minecraft:') ? requested : `minecraft:${requested}`;
+      }
+
+      function getHumanItemName(itemId) {
+        return String(itemId || '')
+          .replace(/^minecraft:/, '')
+          .replace(/_/g, ' ');
+      }
+
+      async function handleItemRequest(username, message, isPrivate = false) {
         if (!username || username === bot.username) return;
         if (!bot || !botState.connected) {
-          addLog(`[Chat] Ignoring pickaxe request from ${username} while bot is reconnecting`);
+          addLog(`[Chat] Ignoring item request from ${username} while bot is reconnecting`);
           return;
         }
         if (!botState.commandReadyAt || Date.now() < botState.commandReadyAt) {
-          addLog(`[Chat] Ignoring pickaxe request from ${username} until bot finishes login/auth`);
+          addLog(`[Chat] Ignoring item request from ${username} until bot finishes login/auth`);
           sendPrivateReply(username, "I’m still logging in. Please try again in a few seconds.");
           return;
         }
 
-        const wantPickaxe = /(?:give me|i need|can i have|please give).*(diamond|dia).*pickaxe|diamond pickaxe|diamond_pickaxe|give pickaxe/i;
-        if (!wantPickaxe.test(message)) return;
+        const itemId = normalizeRequestedItem(message);
+        if (!itemId) return;
 
         const channel = isPrivate ? 'Whisper' : 'Chat';
-        addLog(`[${channel}] Pickaxe request from ${username}: "${message}"`);
-        queueGiveRequest(username, 'diamond_pickaxe');
+        addLog(`[${channel}] Item request from ${username}: "${message}" -> ${itemId}`);
+        queueGiveRequest(username, itemId);
 
         try {
-          bot.chat(`/give ${username} minecraft:diamond_pickaxe`);
-          addLog(`[${channel}] Executed give command to give diamond_pickaxe to ${username}`);
+          bot.chat(`/give ${username} ${itemId}`);
+          addLog(`[${channel}] Executed give command to give ${itemId} to ${username}`);
 
           setTimeout(() => {
             if (pendingGiveRequests.has(username.toLowerCase())) {
               addLog(`[${channel}] Give command timeout for ${username}`);
-              sendPrivateReply(username, "I tried to give it, but I didn't get a success response. Please OP me and try again.");
+              sendPrivateReply(username, `I tried to give you ${getHumanItemName(itemId)}, but I didn't get a success response. Please OP me and try again.`);
               clearGiveRequest(username);
             }
           }, 5000);
         } catch (e) {
           addLog(`[${channel}] Failed to send give command to ${username}: ${e.message}`);
-          sendPrivateReply(username, "I couldn't give you the pickaxe. Please OP me then try again.");
+          sendPrivateReply(username, `I couldn't give you ${getHumanItemName(itemId)}. Please OP me then try again.`);
           clearGiveRequest(username);
         }
       }
@@ -1401,7 +1435,7 @@ function createBot() {
         for (const [key, req] of pendingGiveRequests.entries()) {
           if (lower.includes(req.username.toLowerCase()) && (lower.includes('given') || lower.includes('gave') || lower.includes('issued'))) {
             addLog(`[Chat] Give command confirmed for ${req.username}: ${message}`);
-            try { bot.chat(`/tell ${req.username} Here your pickaxe — enjoy!`); } catch (e) { /* ignore */ }
+            try { sendPrivateReply(req.username, `Here your ${getHumanItemName(req.itemName)} — enjoy!`); } catch (e) { /* ignore */ }
             pendingGiveRequests.delete(key);
             break;
           }
@@ -1414,28 +1448,28 @@ function createBot() {
             lower.includes('cannot execute')
           ) {
             addLog(`[Chat] Give command failed for ${req.username}: ${message}`);
-            try { bot.chat(`/tell ${req.username} I couldn't give you the pickaxe. Please OP me then try again.`); } catch (e) { /* ignore */ }
+            try { sendPrivateReply(req.username, `I couldn't give you ${getHumanItemName(req.itemName)}. Please OP me then try again.`); } catch (e) { /* ignore */ }
             pendingGiveRequests.delete(key);
             break;
           }
         }
       });
 
-      // Chat-trigger: give pickaxe on request
+      // Chat-trigger: give requested item on public chat
       bot.on('chat', async (username, message) => {
         try {
-          await handlePickaxeRequest(username, message, false);
+          await handleItemRequest(username, message, false);
         } catch (err) {
-          addLog(`[Chat] Error handling pickaxe request: ${err && err.message ? err.message : String(err)}`);
+          addLog(`[Chat] Error handling item request: ${err && err.message ? err.message : String(err)}`);
         }
       });
 
       // Whisper-trigger: private message support
       bot.on('whisper', async (username, message) => {
         try {
-          await handlePickaxeRequest(username, message, true);
+          await handleItemRequest(username, message, true);
         } catch (err) {
-          addLog(`[Whisper] Error handling pickaxe request: ${err && err.message ? err.message : String(err)}`);
+          addLog(`[Whisper] Error handling item request: ${err && err.message ? err.message : String(err)}`);
         }
       });
 
