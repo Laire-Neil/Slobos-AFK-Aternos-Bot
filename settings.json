@@ -20,7 +20,7 @@
   "utils": {
     "auto-auth": {
       "enabled": true,
-      "password": "chalol78"
+      "password": "09639120102"
     },
     "anti-afk": {
       "enabled": true,
@@ -61,18 +61,18 @@
     "avoidMobs": true,
     "combat": true,
     "beds": false,
-    "chat": false,
+    "chat": true,
     "console-commands": true,
-    "aiSurvival": false,
-    "pauseAll": false,
+    "aiSurvival": true,
+    "pauseAll": true,
     "disableActions": {
       "mining": false,
       "farming": false,
       "building": false,
       "crafting": false,
       "aiSurvival": false,
-      "movement": false,
-      "antiAfk": false
+      "movement": true,
+      "antiAfk": true
     }
   },
   "combat": {
