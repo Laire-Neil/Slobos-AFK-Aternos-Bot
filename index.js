@@ -1331,24 +1331,75 @@ function createBot() {
 
       initializeModules(bot, mcData, defaultMove);
 
+      const pendingGiveRequests = new Map();
+
+      function queueGiveRequest(username, itemName) {
+        pendingGiveRequests.set(username.toLowerCase(), {
+          username,
+          itemName,
+          startedAt: Date.now(),
+        });
+      }
+
+      function clearGiveRequest(username) {
+        pendingGiveRequests.delete(username.toLowerCase());
+      }
+
+      bot.on('messagestr', (message) => {
+        const lower = String(message || '').toLowerCase();
+        for (const [key, req] of pendingGiveRequests.entries()) {
+          if (lower.includes(req.username.toLowerCase()) && (lower.includes('given') || lower.includes('gave') || lower.includes('issued'))) {
+            addLog(`[Chat] Give command confirmed for ${req.username}: ${message}`);
+            try { bot.chat(`/tell ${req.username} Here your pickaxe — enjoy!`); } catch (e) { /* ignore */ }
+            pendingGiveRequests.delete(key);
+            break;
+          }
+
+          if (
+            lower.includes('unknown command') ||
+            lower.includes('not allowed') ||
+            lower.includes('no permission') ||
+            lower.includes('insufficient permission') ||
+            lower.includes('cannot execute')
+          ) {
+            addLog(`[Chat] Give command failed for ${req.username}: ${message}`);
+            try { bot.chat(`/tell ${req.username} I couldn't give you the pickaxe. Please OP me then try again.`); } catch (e) { /* ignore */ }
+            pendingGiveRequests.delete(key);
+            break;
+          }
+        }
+      });
+
       // Chat-trigger: give pickaxe on request
       bot.on('chat', async (username, message) => {
         try {
           if (!username || username === bot.username) return;
+          if (!bot || !botState.connected) {
+            addLog(`[Chat] Ignoring pickaxe request from ${username} while bot is reconnecting`);
+            return;
+          }
           const msg = (message || '').toLowerCase();
           const wantPickaxe = /(?:give me|i need|can i have|please give).*(diamond|dia).*pickaxe|diamond pickaxe|diamond_pickaxe|give pickaxe/i;
           if (!wantPickaxe.test(message)) return;
 
           addLog(`[Chat] Pickaxe request from ${username}: "${message}"`);
+          queueGiveRequest(username, 'diamond_pickaxe');
 
           // Directly give the pickaxe to the requester using server command (requires bot to be OP)
           try {
-            bot.chat(`/give ${username} minecraft:diamond_pickaxe 1`);
+            bot.chat(`/give ${username} minecraft:diamond_pickaxe`);
             addLog(`[Chat] Executed give command to give diamond_pickaxe to ${username}`);
-            try { bot.chat(`@${username} Here your pickaxe — enjoy!`); } catch (e) { /* ignore */ }
+            setTimeout(() => {
+              if (pendingGiveRequests.has(username.toLowerCase())) {
+                addLog(`[Chat] Give command timeout for ${username}`);
+                try { bot.chat(`/tell ${username} I tried to give it, but I didn't get a success response. Please OP me and try again.`); } catch (e) { /* ignore */ }
+                clearGiveRequest(username);
+              }
+            }, 5000);
           } catch (e) {
             addLog(`[Chat] Failed to send give command to ${username}: ${e.message}`);
             try { bot.chat(`/tell ${username} I couldn't give you the pickaxe. Please OP me then try again.`); } catch (e2) { /* ignore */ }
+            clearGiveRequest(username);
           }
         } catch (err) {
           addLog(`[Chat] Error handling pickaxe request: ${err && err.message ? err.message : String(err)}`);
