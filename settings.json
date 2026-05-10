@@ -61,9 +61,19 @@
     "avoidMobs": true,
     "combat": true,
     "beds": false,
-    "chat": true,
+    "chat": false,
     "console-commands": true,
-    "aiSurvival": true
+    "aiSurvival": false,
+    "pauseAll": false,
+    "disableActions": {
+      "mining": false,
+      "farming": false,
+      "building": false,
+      "crafting": false,
+      "aiSurvival": false,
+      "movement": false,
+      "antiAfk": false
+    }
   },
   "combat": {
     "attack-mobs": true,

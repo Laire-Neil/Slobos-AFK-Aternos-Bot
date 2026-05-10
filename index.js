@@ -1520,24 +1520,29 @@ function initializeModules(bot, mcData, defaultMove) {
 
   // ---------- MOVE TO POSITION ----------
   // FIX: only use position goal if circle-walk is NOT enabled (they fight over pathfinder)
-  if (
-    config.position &&
-    config.position.enabled &&
-    !(
-      config.movement &&
-      config.movement["circle-walk"] &&
-      config.movement["circle-walk"].enabled
-    )
-  ) {
-    bot.pathfinder.setMovements(defaultMove);
-    bot.pathfinder.setGoal(
-      new GoalBlock(config.position.x, config.position.y, config.position.z),
-    );
-    addLog("[Position] Navigating to configured position...");
+  // If a global pause is enabled, skip movement and automated goals
+  if (config.modules && config.modules.pauseAll) {
+    addLog('[Modules] Global automation pause enabled - skipping movement and AI setup');
+  } else {
+    if (
+      config.position &&
+      config.position.enabled &&
+      !(
+        config.movement &&
+        config.movement["circle-walk"] &&
+        config.movement["circle-walk"].enabled
+      )
+    ) {
+      bot.pathfinder.setMovements(defaultMove);
+      bot.pathfinder.setGoal(
+        new GoalBlock(config.position.x, config.position.y, config.position.z),
+      );
+      addLog("[Position] Navigating to configured position...");
+    }
   }
 
   // ---------- ANTI-AFK ----------
-  if (config.utils["anti-afk"] && config.utils["anti-afk"].enabled) {
+  if (!(config.modules && config.modules.pauseAll) && config.utils["anti-afk"] && config.utils["anti-afk"].enabled && !(config.modules && config.modules.disableActions && config.modules.disableActions.antiAfk)) {
     // Arm swinging
     addInterval(
       () => {
@@ -1637,7 +1642,7 @@ function initializeModules(bot, mcData, defaultMove) {
 
   // ---------- MOVEMENT MODULES ----------
   // FIX: check top-level movement.enabled flag
-  if (config.movement && config.movement.enabled !== false) {
+  if (!(config.modules && config.modules.pauseAll) && config.movement && config.movement.enabled !== false && !(config.modules && config.modules.disableActions && config.modules.disableActions.movement)) {
     // FIX: circle-walk and random-jump both jump - only run one jumping mechanism
     // random-jump is skipped if anti-afk jump is handled elsewhere; we only use random-jump here
     if (
@@ -1704,8 +1709,10 @@ function initializeModules(bot, mcData, defaultMove) {
 
     const aiState = aiStateModule(bot, config, addLog, aiModules);
 
-    // Start the autonomous AI behavior
-    if (config.modules && config.modules.aiSurvival !== false) {
+    // Start the autonomous AI behavior unless globally paused or disabled
+    if (config.modules && (config.modules.pauseAll || (config.modules.disableActions && config.modules.disableActions.aiSurvival))) {
+      addLog('[AI] Autonomous survival AI disabled by configuration');
+    } else if (config.modules && config.modules.aiSurvival !== false) {
       aiState.startAI();
       addLog("[AI] Autonomous survival AI activated! Bot will now:");
       addLog("[AI]  • Gather resources (wood, stone, coal)");

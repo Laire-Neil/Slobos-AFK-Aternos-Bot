@@ -11,6 +11,12 @@ module.exports = function setupMining(bot, config, addLog) {
   addLog('[Mining] Mining system initialized');
 
   async function mineBlock(block) {
+    // Respect config: allow disabling mining via settings
+    if (config && config.modules && (config.modules.pauseAll || (config.modules.disableActions && config.modules.disableActions.mining))) {
+      addLog('[Mining] Mining disabled by configuration');
+      return false;
+    }
+
     if (!block || !block.position || !block.name) {
       addLog(`[Mining] No valid block to mine`);
       return false;
@@ -84,6 +90,10 @@ module.exports = function setupMining(bot, config, addLog) {
   }
 
   function gatherResources(targetCount = 64) {
+    if (config && config.modules && (config.modules.pauseAll || (config.modules.disableActions && config.modules.disableActions.mining))) {
+      addLog('[Mining] gatherResources skipped - mining disabled by configuration');
+      return null;
+    }
     const inventory = getInventorySummary();
     
     // Priority: collect logs first (for crafting)

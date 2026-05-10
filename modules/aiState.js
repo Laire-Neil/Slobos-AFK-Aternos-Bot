@@ -77,8 +77,14 @@ module.exports = function setupAI(bot, config, addLog, modules) {
   let actionInterval = null;
 
   function startAI() {
+    // Respect configuration: don't start AI if globally paused or aiSurvival disabled
+    if (config && config.modules && (config.modules.pauseAll || (config.modules.disableActions && config.modules.disableActions.aiSurvival))) {
+      addLog('[AI] startAI skipped - autonomous AI disabled by configuration');
+      return;
+    }
+
     addLog('[AI] Starting autonomous behavior loop...');
-    
+
     actionInterval = setInterval(() => {
       if (!bot || !bot.entity) return;
 
