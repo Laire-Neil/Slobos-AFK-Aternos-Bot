@@ -26,6 +26,9 @@ let botState = {
   wasThrottled: false,
 };
 
+// Track if we've already retried with an explicit version fallback
+let triedExplicitVersionFallback = false;
+
 // Health check endpoint for monitoring
 app.get('/', (req, res) => {
   res.send(`
@@ -1221,6 +1224,27 @@ function createBot() {
       version: botVersion,
       hideErrors: false,
       checkTimeoutInterval: 600000,
+    });
+
+    // Handle runtime connection errors from the protocol auto-version step
+    bot.on('error', (err) => {
+      addLog(`[Bot] Error: ${err && err.message ? err.message : String(err)}`);
+      // If protocol is unsupported and we haven't yet tried an explicit fallback, do so once
+      if (!triedExplicitVersionFallback && err && /Unsupported protocol version/.test(err.message)) {
+        triedExplicitVersionFallback = true;
+        addLog('[Bot] Attempting fallback: retrying with explicit recent version "26.1.2"');
+        try {
+          bot.removeAllListeners();
+          bot.end();
+        } catch (e) {
+          /* ignore */
+        }
+        bot = null;
+        // set a reasonable explicit version to bypass auto-detection
+        config.server.version = "26.1.2";
+        // small delay before recreating
+        setTimeout(createBot, 1500);
+      }
     });
 
     bot.loadPlugin(pathfinder);
