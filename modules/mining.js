@@ -33,35 +33,52 @@ module.exports = function setupMining(bot, config, addLog) {
 
   function findNearestBlock(blockName, maxDistance = 64) {
     try {
-      if (!bot || !bot.findBlocks) return null;
+      if (!bot || !bot.entity) return null;
       
-      // Also search for variations (stone, stone_bricks, deepslate, etc.)
-      const variations = [
-        blockName,
-        blockName.replace('_ore', ''),
-        'stone', 'deepslate', 'cobblestone',
-        'oak_log', 'birch_log', 'spruce_log',
-        'coal_ore', 'copper_ore', 'iron_ore'
-      ];
-
-      for (const variant of variations) {
-        try {
-          const blocks = bot.findBlocks({
-            matching: (block) => block && block.name && block.name.includes(variant),
-            maxDistance: maxDistance,
-            count: 1
-          });
-          if (blocks && blocks.length > 0) {
-            addLog(`[Mining] Found block: ${blocks[0].name}`);
-            return blocks[0];
+      const pos = bot.entity.position;
+      let closest = null;
+      let closestDist = maxDistance + 1;
+      
+      // Manually scan nearby blocks using blockAt()
+      const checkDistance = Math.min(maxDistance, 32); // Limit to 32 for performance
+      
+      for (let dx = -checkDistance; dx <= checkDistance; dx++) {
+        for (let dy = -checkDistance; dy <= checkDistance; dy++) {
+          for (let dz = -checkDistance; dz <= checkDistance; dz++) {
+            try {
+              const blockPos = pos.offset(dx, dy, dz);
+              const block = bot.blockAt(blockPos);
+              
+              if (block && block.name && block.name !== 'air') {
+                // Check if this block type is useful
+                const isUseful = block.name.includes('stone') || 
+                               block.name.includes('log') || 
+                               block.name.includes('ore') ||
+                               block.name.includes('wood') ||
+                               block.name.includes('deepslate') ||
+                               block.name.includes('dirt') ||
+                               block.name.includes('cobblestone');
+                
+                if (isUseful) {
+                  const dist = Math.abs(dx) + Math.abs(dy) + Math.abs(dz); // Manhattan distance
+                  if (dist < closestDist) {
+                    closest = block;
+                    closestDist = dist;
+                  }
+                }
+              }
+            } catch (e) {
+              // Skip this block if error
+            }
           }
-        } catch (e) {
-          // Try next variant
         }
       }
-      return null;
+      
+      if (closest) {
+        addLog(`[Mining] Found ${closest.name} nearby`);
+      }
+      return closest;
     } catch (err) {
-      addLog(`[Mining] Error finding blocks: ${err.message}`);
       return null;
     }
   }
