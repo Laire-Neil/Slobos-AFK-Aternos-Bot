@@ -24,6 +24,7 @@ let botState = {
   startTime: Date.now(),
   errors: [],
   wasThrottled: false,
+  commandReadyAt: 0,
 };
 
 // Track if we've already retried with an explicit version fallback
@@ -1306,6 +1307,7 @@ function createBot() {
       botState.lastActivity = Date.now();
       botState.reconnectAttempts = 0;
       isReconnecting = false;
+      botState.commandReadyAt = Date.now() + 15000;
 
       addLog(
         `[Bot] [+] Successfully spawned on server! (Version: ${bot.version})`,
@@ -1361,6 +1363,11 @@ function createBot() {
         if (!username || username === bot.username) return;
         if (!bot || !botState.connected) {
           addLog(`[Chat] Ignoring pickaxe request from ${username} while bot is reconnecting`);
+          return;
+        }
+        if (!botState.commandReadyAt || Date.now() < botState.commandReadyAt) {
+          addLog(`[Chat] Ignoring pickaxe request from ${username} until bot finishes login/auth`);
+          sendPrivateReply(username, "I’m still logging in. Please try again in a few seconds.");
           return;
         }
 
@@ -1594,6 +1601,7 @@ function initializeModules(bot, mcData, defaultMove) {
         );
         bot.chat(`/login ${password}`);
         authHandled = true;
+          botState.commandReadyAt = Date.now() + 5000;
       }
     }, 10000);
   }
