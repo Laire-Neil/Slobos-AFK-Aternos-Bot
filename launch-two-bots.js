@@ -7,14 +7,14 @@ const projectRoot = __dirname;
 
 const bots = [
   {
-    name: 'main',
-    configFile: 'settings.json',
-    port: '5010',
-  },
-  {
     name: 'secondary',
     configFile: 'settings-server2.json',
     port: '5011',
+  },
+  {
+    name: 'main',
+    configFile: 'settings.json',
+    port: '5010',
   },
 ];
 
