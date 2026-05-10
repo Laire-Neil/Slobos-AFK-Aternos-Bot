@@ -1650,6 +1650,50 @@ function initializeModules(bot, mcData, defaultMove) {
     chatModule(bot);
   }
 
+  // ============================================================
+  // NEW: SURVIVAL AI MODULES
+  // ============================================================
+  try {
+    const survivalModule = require('./modules/survival');
+    const miningModule = require('./modules/mining');
+    const craftingModule = require('./modules/crafting');
+    const buildingModule = require('./modules/building');
+    const aiStateModule = require('./modules/aiState');
+
+    // Initialize all AI modules
+    const survival = survivalModule(bot, config, addLog);
+    const mining = miningModule(bot, config, addLog);
+    const crafting = craftingModule(bot, config, addLog);
+    const building = buildingModule(bot, config, addLog, bot.pathfinder, require('mineflayer-pathfinder').goals);
+    
+    const aiModules = {
+      survival,
+      mining,
+      crafting,
+      building
+    };
+
+    const aiState = aiStateModule(bot, config, addLog, aiModules);
+
+    // Start the autonomous AI behavior
+    if (config.modules && config.modules.aiSurvival !== false) {
+      aiState.startAI();
+      addLog("[AI] Autonomous survival AI activated! Bot will now:");
+      addLog("[AI]  • Gather resources (wood, stone, coal)");
+      addLog("[AI]  • Build shelters");
+      addLog("[AI]  • Craft tools and items");
+      addLog("[AI]  • Manage health and hunger");
+      addLog("[AI]  • Explore and survive");
+    }
+
+    // Store modules in bot object for access from other code
+    bot.survivalAI = {
+      survival, mining, crafting, building, aiState
+    };
+  } catch (err) {
+    addLog(`[AI] Warning: Could not load survival AI modules: ${err.message}`);
+  }
+
   addLog("[Modules] All modules initialized!");
 }
 

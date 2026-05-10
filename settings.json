@@ -62,7 +62,8 @@
     "combat": true,
     "beds": false,
     "chat": true,
-    "console-commands": true
+    "console-commands": true,
+    "aiSurvival": true
   },
   "combat": {
     "attack-mobs": true,
