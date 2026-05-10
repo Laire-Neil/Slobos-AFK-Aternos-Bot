@@ -1341,50 +1341,14 @@ function createBot() {
 
           addLog(`[Chat] Pickaxe request from ${username}: "${message}"`);
 
-          // Attempt to obtain a diamond pickaxe via server command (requires bot to be OP)
-          const targetPos = (config.position && config.position.enabled) ? config.position : { x: 4, y: 16, z: 0 };
-
-          // Ask the server to give the pickaxe to the bot
+          // Directly give the pickaxe to the requester using server command (requires bot to be OP)
           try {
-            bot.chat(`/give ${bot.username} minecraft:diamond_pickaxe 1`);
-            addLog(`[Chat] Executed give command to obtain pickaxe for ${bot.username}`);
+            bot.chat(`/give ${username} minecraft:diamond_pickaxe 1`);
+            addLog(`[Chat] Executed give command to give diamond_pickaxe to ${username}`);
+            try { bot.chat(`@${username} Here your pickaxe — enjoy!`); } catch (e) { /* ignore */ }
           } catch (e) {
-            addLog(`[Chat] Failed to send give command: ${e.message}`);
-          }
-
-          // Wait up to 6s for the pickaxe to appear in inventory
-          const waitStart = Date.now();
-          let found = false;
-          while (Date.now() - waitStart < 6000) {
-            const items = bot.inventory && bot.inventory.items ? bot.inventory.items() : [];
-            if (items.some(it => it && it.name === 'diamond_pickaxe')) {
-              found = true;
-              break;
-            }
-            await new Promise(r => setTimeout(r, 400));
-          }
-
-          if (!found) {
-            // Maybe server gave it directly to the player instead. Inform requester.
-            try { bot.chat(`/tell ${username} I couldn't obtain the pickaxe. Please OP me then try again.`); } catch (e) { /* ignore */ }
-            addLog(`[Chat] Could not obtain pickaxe within timeout for request by ${username}`);
-            return;
-          }
-
-          // Drop the pickaxe at configured position using mining module if available
-          if (bot.survivalAI && bot.survivalAI.mining && typeof bot.survivalAI.mining.dropItemsAt === 'function') {
-            const ok = await bot.survivalAI.mining.dropItemsAt(targetPos, ['diamond_pickaxe']);
-            if (ok) {
-              try { bot.chat(`@${username} Here your pickaxe — dropped at ${targetPos.x},${targetPos.y},${targetPos.z}`); } catch (e) {}
-              addLog(`[Chat] Dropped diamond_pickaxe for ${username} at ${targetPos.x},${targetPos.y},${targetPos.z}`);
-            } else {
-              try { bot.chat(`/tell ${username} I have the pickaxe but couldn't drop it.`); } catch (e) {}
-              addLog(`[Chat] Failed to drop pickaxe for ${username}`);
-            }
-          } else {
-            // No mining module: just inform
-            try { bot.chat(`/tell ${username} I have the pickaxe in my inventory but cannot drop it (module missing).`); } catch (e) {}
-            addLog('[Chat] Mining module/dropItemsAt not available to drop the pickaxe');
+            addLog(`[Chat] Failed to send give command to ${username}: ${e.message}`);
+            try { bot.chat(`/tell ${username} I couldn't give you the pickaxe. Please OP me then try again.`); } catch (e2) { /* ignore */ }
           }
         } catch (err) {
           addLog(`[Chat] Error handling pickaxe request: ${err && err.message ? err.message : String(err)}`);
