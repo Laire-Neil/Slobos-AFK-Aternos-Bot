@@ -49,29 +49,28 @@ module.exports = function setupAI(bot, config, addLog, modules) {
       survival.eatFood();
     }
 
-    // Priority: Build shelter if we don't have one
-    if (buildingAttempts < 1 && (inventory.oak_log || 0) > 20) {
-      setState(states.BUILDING);
-      return;
-    }
-
-    // Check if we need more resources
-    const hasEnoughLogs = (inventory.oak_log || 0) > 32;
-    const hasEnoughStone = (inventory.stone || 0) > 32;
-    const hasCoal = (inventory.coal || 0) > 8;
-
+    // Priority: Always gather resources first on this gamemode
+    const hasEnoughLogs = (inventory.oak_log || 0) > 16;
+    const hasEnoughStone = (inventory.stone || 0) > 24;
+    
     if (!hasEnoughLogs || !hasEnoughStone) {
       setState(states.MINING);
       return;
     }
 
+    // Priority: Build shelter if we don't have one
+    if (buildingAttempts < 1 && (inventory.oak_log || 0) > 12) {
+      setState(states.BUILDING);
+      return;
+    }
+
     // If we have basic resources, practice crafting
-    if ((inventory.oak_log || 0) > 16 && currentState !== states.CRAFTING) {
+    if ((inventory.oak_log || 0) > 8 && currentState !== states.CRAFTING) {
       setState(states.CRAFTING);
       return;
     }
 
-    // Default to exploring
+    // Default to exploring to find more resources
     setState(states.EXPLORING);
   }
 
@@ -132,10 +131,26 @@ module.exports = function setupAI(bot, config, addLog, modules) {
     if (mining.isMining()) return;
 
     const target = mining.gatherResources(64);
-    if (target && target.position) {
-      mining.mineBlock(target);
+    if (target && target.position && bot && bot.pathfinder && bot.entity) {
+      try {
+        // Move to the resource first
+        const GoalBlock = require('mineflayer-pathfinder').goals.GoalBlock;
+        const dist = bot.entity.position.distanceTo(target.position);
+        
+        if (dist < 6) {
+          // Close enough to mine
+          mining.mineBlock(target);
+        } else {
+          // Move closer
+          addLog(`[AI] Moving to resource (${Math.floor(dist)}m away)`);
+          bot.pathfinder.setGoal(new GoalBlock(target.position.x, target.position.y, target.position.z), false);
+        }
+      } catch (err) {
+        addLog(`[AI] Error navigating to resource: ${err.message}`);
+        setState(states.EXPLORING);
+      }
     } else {
-      addLog(`[AI] No resources found nearby, switching to EXPLORING`);
+      addLog(`[AI] No resources found nearby, exploring to find some...`);
       setState(states.EXPLORING);
     }
   }
@@ -166,12 +181,25 @@ module.exports = function setupAI(bot, config, addLog, modules) {
   }
 
   function executeExploring() {
-    // Random walk
-    const dx = (Math.random() - 0.5) * 50;
-    const dz = (Math.random() - 0.5) * 50;
-    const targetPos = bot.entity.position.clone().add(new (require('vec3'))(dx, 0, dz));
+    // Random walk in a direction
+    if (!bot || !bot.entity || !bot.pathfinder) return;
     
-    addLog(`[AI] Exploring towards (${Math.floor(targetPos.x)}, ${Math.floor(targetPos.z)})`);
+    try {
+      const dx = (Math.random() - 0.5) * 100;
+      const dz = (Math.random() - 0.5) * 100;
+      const pos = bot.entity.position;
+      const targetPos = pos.clone().add(new (require('vec3'))(dx, 0, dz));
+      
+      const GoalBlock = require('mineflayer-pathfinder').goals.GoalBlock;
+      bot.pathfinder.setGoal(new GoalBlock(Math.floor(targetPos.x), Math.floor(pos.y), Math.floor(targetPos.z)), false);
+      
+      addLog(`[AI] Exploring: moving to scan for resources...`);
+    } catch (err) {
+      // Fallback: just move in a random direction
+      if (bot && bot.entity && bot.setControlState) {
+        bot.setControlState('forward', Math.random() > 0.5);
+      }
+    }
   }
 
   function stopAI() {

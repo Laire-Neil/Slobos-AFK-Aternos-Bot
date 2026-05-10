@@ -20,31 +20,37 @@ module.exports = function setupBuilding(bot, config, addLog, pathfinder, goals) 
 
     isBuilding = true;
     try {
-      const pos = bot.entity.position.clone();
-      const logs = bot.inventory.findInventoryItem('oak_log');
-
-      if (!logs) {
-        addLog('[Building] Need wood logs to build shelter');
+      if (!bot || !bot.entity || !bot.inventory) {
+        addLog('[Building] Bot not ready');
         isBuilding = false;
         return false;
       }
 
-      addLog(`[Building] 🏗️  Building shelter at (${Math.floor(pos.x)}, ${Math.floor(pos.y)}, ${Math.floor(pos.z)})`);
+      const pos = bot.entity.position.clone();
+      const logs = bot.inventory.findInventoryItem('oak_log');
 
-      // Build 3x3 base
+      if (!logs || logs.count < 8) {
+        addLog(`[Building] Need more wood logs (have: ${logs ? logs.count : 0}, need: 8)`);
+        isBuilding = false;
+        return false;
+      }
+
+      addLog(`[Building] 🏗️  Building shelter...`);
+
+      // Build a simple 2x2 shelter instead of 3x3 to save resources
       const offsets = [
-        [-1, -1], [0, -1], [1, -1],
-        [-1, 0],           [1, 0],
-        [-1, 1],  [0, 1],  [1, 1]
+        [0, 0], [1, 0],
+        [0, 1], [1, 1]
       ];
 
+      let built = 0;
       for (const [dx, dz] of offsets) {
         const blockPos = pos.offset(dx, 0, dz);
         const block = bot.blockAt(blockPos);
         
         if (block && block.name !== 'oak_log') {
-          await placeBlock(blockPos, 'oak_log');
-          addLog(`[Building] Placed block at (${blockPos.x}, ${blockPos.y}, ${blockPos.z})`);
+          const success = await placeBlock(blockPos, 'oak_log');
+          if (success) built++;
         }
       }
 
@@ -56,11 +62,12 @@ module.exports = function setupBuilding(bot, config, addLog, pathfinder, goals) 
           
           if (!block || block.name === 'air') {
             await placeBlock(wallPos, 'oak_log');
+            built++;
           }
         }
       }
 
-      addLog('[Building] ✓ Shelter built!');
+      addLog(`[Building] ✓ Shelter started (${built} blocks placed)`);
       isBuilding = false;
       return true;
     } catch (err) {

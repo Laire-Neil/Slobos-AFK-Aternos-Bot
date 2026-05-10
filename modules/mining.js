@@ -35,13 +35,33 @@ module.exports = function setupMining(bot, config, addLog) {
     try {
       if (!bot || !bot.findBlocks) return null;
       
-      const blocks = bot.findBlocks({
-        matching: (block) => block && block.name === blockName,
-        maxDistance: maxDistance,
-        count: 1
-      });
-      return (blocks && blocks.length > 0) ? blocks[0] : null;
+      // Also search for variations (stone, stone_bricks, deepslate, etc.)
+      const variations = [
+        blockName,
+        blockName.replace('_ore', ''),
+        'stone', 'deepslate', 'cobblestone',
+        'oak_log', 'birch_log', 'spruce_log',
+        'coal_ore', 'copper_ore', 'iron_ore'
+      ];
+
+      for (const variant of variations) {
+        try {
+          const blocks = bot.findBlocks({
+            matching: (block) => block && block.name && block.name.includes(variant),
+            maxDistance: maxDistance,
+            count: 1
+          });
+          if (blocks && blocks.length > 0) {
+            addLog(`[Mining] Found block: ${blocks[0].name}`);
+            return blocks[0];
+          }
+        } catch (e) {
+          // Try next variant
+        }
+      }
+      return null;
     } catch (err) {
+      addLog(`[Mining] Error finding blocks: ${err.message}`);
       return null;
     }
   }
@@ -51,22 +71,32 @@ module.exports = function setupMining(bot, config, addLog) {
     
     // Priority: collect logs first (for crafting)
     if ((inventory.oak_log || 0) < targetCount / 4) {
-      const logBlock = findNearestBlock('oak_log', 128);
-      if (logBlock && logBlock.position) return logBlock;
+      const logBlock = findNearestBlock('oak_log', 200);
+      if (logBlock && logBlock.position) {
+        addLog(`[Mining] Target: oak_log at distance`);
+        return logBlock;
+      }
     }
 
-    // Then stone
-    if ((inventory.stone || 0) < targetCount / 4) {
-      const stoneBlock = findNearestBlock('stone', 128);
-      if (stoneBlock && stoneBlock.position) return stoneBlock;
+    // Then stone (most important)
+    if ((inventory.stone || 0) < targetCount / 2) {
+      const stoneBlock = findNearestBlock('stone', 200);
+      if (stoneBlock && stoneBlock.position) {
+        addLog(`[Mining] Target: stone at distance`);
+        return stoneBlock;
+      }
     }
 
     // Then coal for torches
     if ((inventory.coal || 0) < targetCount / 8) {
-      const coalBlock = findNearestBlock('coal_ore', 128);
-      if (coalBlock && coalBlock.position) return coalBlock;
+      const coalBlock = findNearestBlock('coal_ore', 200);
+      if (coalBlock && coalBlock.position) {
+        addLog(`[Mining] Target: coal at distance`);
+        return coalBlock;
+      }
     }
 
+    addLog(`[Mining] No priority resources found. Inventory: ${JSON.stringify(inventory)}`);
     return null;
   }
 
