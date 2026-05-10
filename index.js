@@ -4,10 +4,21 @@ const { addLog, getLogs } = require("./logger");
 const mineflayer = require("mineflayer");
 const { Movements, pathfinder, goals } = require("mineflayer-pathfinder");
 const { GoalBlock } = goals;
-const config = require("./settings.json");
 const express = require("express");
 const http = require("http");
 const https = require("https");
+const fs = require("fs");
+const path = require("path");
+
+const configFile = process.env.CONFIG_FILE
+  ? path.resolve(process.cwd(), process.env.CONFIG_FILE)
+  : path.join(__dirname, "settings.json");
+
+if (!fs.existsSync(configFile)) {
+  throw new Error(`Config file not found: ${configFile}`);
+}
+
+const config = require(configFile);
 
 // ============================================================
 // EXPRESS SERVER - Keep Render/Aternos alive
