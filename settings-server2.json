@@ -63,16 +63,16 @@
     "beds": false,
     "chat": true,
     "console-commands": true,
-    "aiSurvival": true,
-    "pauseAll": true,
+    "aiSurvival": false,
+    "pauseAll": false,
     "disableActions": {
       "mining": false,
       "farming": false,
       "building": false,
       "crafting": false,
       "aiSurvival": false,
-      "movement": true,
-      "antiAfk": true
+      "movement": false,
+      "antiAfk": false
     }
   },
   "combat": {
