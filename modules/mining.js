@@ -126,11 +126,78 @@ module.exports = function setupMining(bot, config, addLog) {
     return summary;
   }
 
+  // Move to a target position and drop items there.
+  // pos: { x, y, z }
+  // itemsToDrop: array of item names to drop; empty => drop all non-empty items
+  async function dropItemsAt(pos, itemsToDrop = []) {
+    if (!bot || !bot.pathfinder || !bot.entity) {
+      addLog('[Mining] Cannot drop items - bot not ready');
+      return false;
+    }
+
+    const { goals } = require('mineflayer-pathfinder');
+    const GoalBlock = goals.GoalBlock;
+    const Vec3 = require('vec3').Vec3 || require('vec3');
+
+    try {
+      addLog(`[Mining] Navigating to drop position ${pos.x},${pos.y},${pos.z}`);
+      bot.pathfinder.setGoal(new GoalBlock(pos.x, pos.y, pos.z));
+
+      // wait until we are within ~2 blocks or timeout
+      const target = new Vec3(pos.x, pos.y, pos.z);
+      const start = Date.now();
+      const timeout = 30000; // 30s
+      while (bot.entity.position.distanceTo(target) > 2) {
+        if (Date.now() - start > timeout) {
+          addLog('[Mining] Could not reach drop position (timeout)');
+          bot.pathfinder.setGoal(null);
+          return false;
+        }
+        // small delay
+        await new Promise((r) => setTimeout(r, 500));
+      }
+
+      addLog('[Mining] Reached drop position, dropping items...');
+
+      const items = bot.inventory.items();
+      for (const it of items) {
+        const name = it.name || '';
+        if (itemsToDrop.length === 0 || itemsToDrop.includes(name)) {
+          try {
+            // tossStack is provided by mineflayer; fallback to toss if necessary
+            if (typeof bot.tossStack === 'function') {
+              await bot.tossStack(it);
+            } else if (typeof bot.toss === 'function') {
+              await new Promise((resolve, reject) => {
+                bot.toss(it.type, it.count, (err) => (err ? reject(err) : resolve()));
+              });
+            } else {
+              addLog('[Mining] No toss API available');
+              break;
+            }
+            addLog(`[Mining] Dropped ${it.count} x ${name}`);
+          } catch (e) {
+            addLog(`[Mining] Failed to drop ${name}: ${e.message}`);
+          }
+        }
+      }
+
+      // clear goal
+      bot.pathfinder.setGoal(null);
+      return true;
+    } catch (err) {
+      addLog(`[Mining] dropItemsAt error: ${err.message}`);
+      try { bot.pathfinder.setGoal(null); } catch (e) {}
+      return false;
+    }
+  }
+
   return {
     mineBlock,
     findNearestBlock,
     gatherResources,
     getInventorySummary,
-    isMining: () => isMining
+    isMining: () => isMining,
+    dropItemsAt
   };
 };

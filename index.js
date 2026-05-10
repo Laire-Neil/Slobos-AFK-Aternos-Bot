@@ -1050,6 +1050,35 @@ app.post("/command", express.json(), (req, res) => {
     return res.json({ success: false, msg });
   }
 
+  // Special console command: /drop x y z [itemName ...]
+  if (cmd.startsWith('/drop ')) {
+    const parts = cmd.split(/\s+/);
+    if (parts.length < 4) {
+      const msg = 'Usage: /drop x y z [itemName]';
+      addLog(`[Console] ${msg}`);
+      return res.json({ success: false, msg });
+    }
+    const x = Number(parts[1]);
+    const y = Number(parts[2]);
+    const z = Number(parts[3]);
+    const items = parts.slice(4); // optional list of item names
+    if (!bot.survivalAI || !bot.survivalAI.mining) {
+      const msg = 'Mining module not available.';
+      addLog(`[Console] ${msg}`);
+      return res.json({ success: false, msg });
+    }
+
+    addLog(`[Console] Drop command received -> ${x},${y},${z} items=${items.join(',')}`);
+    bot.survivalAI.mining.dropItemsAt({ x, y, z }, items).then((ok) => {
+      const msg = ok ? `Dropped items at ${x},${y},${z}` : `Failed to drop items at ${x},${y},${z}`;
+      addLog(`[Console] ${msg}`);
+    }).catch((err) => {
+      addLog(`[Console] Drop error: ${err && err.message ? err.message : String(err)}`);
+    });
+
+    return res.json({ success: true, msg: `Dropping items at ${x},${y},${z} (async)` });
+  }
+
   try {
     bot.chat(cmd);
     addLog(`[Console] Sent to server: ${cmd}`);
