@@ -115,8 +115,15 @@ module.exports = function setupAI(bot, config, addLog, modules) {
       building.buildShelter().then(success => {
         if (success) {
           buildingAttempts++;
+          addLog(`[AI] Shelter built successfully`);
           setState(states.IDLE);
+        } else {
+          addLog(`[AI] Building failed, need more resources`);
+          setState(states.MINING);
         }
+      }).catch(err => {
+        addLog(`[AI] Building error: ${err.message}`);
+        setState(states.MINING);
       });
     }
   }
@@ -125,10 +132,11 @@ module.exports = function setupAI(bot, config, addLog, modules) {
     if (mining.isMining()) return;
 
     const target = mining.gatherResources(64);
-    if (target) {
+    if (target && target.position) {
       mining.mineBlock(target);
     } else {
-      setState(states.IDLE);
+      addLog(`[AI] No resources found nearby, switching to EXPLORING`);
+      setState(states.EXPLORING);
     }
   }
 

@@ -1,0 +1,91 @@
+﻿[12:32:43 PM] [KeepAlive] No RENDER_EXTERNAL_URL set - self-ping disabled (running locally)
+[12:32:43 PM] ==================================================
+[12:32:43 PM]   Minecraft AFK Bot v2.5 - Bug-Fixed Edition
+[12:32:43 PM] ==================================================
+[12:32:43 PM] Server: Neil257.aternos.me:62999
+[12:32:43 PM] Version: 
+[12:32:43 PM] Auto-Reconnect: Enabled
+[12:32:43 PM] ==================================================
+[12:32:43 PM] [Bot] Creating bot instance...
+[12:32:43 PM] [Bot] Connecting to Neil257.aternos.me:62999
+[12:32:44 PM] [Server] Port 5000 in use - trying port 5001 
+[12:32:44 PM] [Server] HTTP server started on port 5001 
+[12:32:57 PM] [Bot] [+] Successfully spawned on server! (Version: 1.21.11)
+[12:32:57 PM] [Modules] Initializing all modules...
+[12:32:57 PM] [Survival] Health and hunger monitor activated
+[12:32:57 PM] [Mining] Mining system initialized
+[12:32:57 PM] [Crafting] Crafting recipes initialized
+[12:32:57 PM] [Building] Building system initialized
+[12:32:57 PM] [AI] Autonomous AI system activated
+[12:32:57 PM] [AI] States: IDLE ΓåÆ GATHERING ΓåÆ CRAFTING ΓåÆ BUILDING
+[12:32:57 PM] [AI] Starting autonomous behavior loop...
+[12:32:57 PM] [AI] Autonomous survival AI activated! Bot will now:
+[12:32:57 PM] [AI]  ΓÇó Gather resources (wood, stone, coal)
+[12:32:57 PM] [AI]  ΓÇó Build shelters
+[12:32:57 PM] [AI]  ΓÇó Craft tools and items
+[12:32:57 PM] [AI]  ΓÇó Manage health and hunger
+[12:32:57 PM] [AI]  ΓÇó Explore and survive
+[12:32:57 PM] [Modules] All modules initialized!
+[12:33:00 PM] [AI] State change: IDLE ΓåÆ MINING
+[12:33:00 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:33:03 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:33:06 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:33:07 PM] [Auth] No prompt detected after 10s, sending /login as failsafe
+[12:33:09 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:33:12 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:33:15 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:33:18 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:33:21 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:33:24 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:33:27 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:33:30 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:33:33 PM] [Bot] Kicked: {"type":"compound","value":{"translate":{"type":"string","value":"multiplayer.disconnect.duplicate_login"}}}
+[12:33:33 PM] [Cleanup] Clearing 6 intervals
+[12:33:33 PM] [Bot] Disconnected: socketClosed
+[12:33:33 PM] [Cleanup] Clearing 0 intervals
+[12:33:33 PM] [Bot] Reconnecting in 4.469s (attempt #1)
+[12:33:33 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:33:36 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:33:37 PM] [Cleanup] Clearing 0 intervals
+[12:33:37 PM] [Bot] Creating bot instance...
+[12:33:37 PM] [Bot] Connecting to Neil257.aternos.me:62999
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20) {
+  errno: -4077,
+  code: 'ECONNRESET',
+  syscall: 'read'
+}
+[12:33:38 PM] [Bot] Error: read ECONNRESET
+[12:33:38 PM] [Bot] Error: read ECONNRESET
+[12:33:39 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:33:42 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:33:45 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:33:48 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:33:51 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:33:54 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:33:57 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:34:00 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:34:03 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:34:06 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:34:08 PM] [Bot] Disconnected: socketClosed
+[12:34:08 PM] [Cleanup] Clearing 0 intervals
+[12:34:08 PM] [Bot] Reconnecting in 9.366s (attempt #2)
+[12:34:09 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:34:12 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:34:15 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+[12:34:18 PM] [Cleanup] Clearing 0 intervals
+[12:34:18 PM] [Bot] Creating bot instance...
+[12:34:18 PM] [Bot] Connecting to Neil257.aternos.me:62999
+[12:34:18 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20) {
+  errno: -4077,
+  code: 'ECONNRESET',
+  syscall: 'read'
+}
+[12:34:19 PM] [Bot] Error: read ECONNRESET
+[12:34:19 PM] [Bot] Error: read ECONNRESET
+[12:34:19 PM] [Bot] Disconnected: socketClosed
+[12:34:19 PM] [Cleanup] Clearing 0 intervals
+[12:34:19 PM] [Bot] Reconnecting in 17.941s (attempt #3)
+[12:34:21 PM] [Mining] Γ£ù Error mining: Cannot read properties of undefined (reading 'x')

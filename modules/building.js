@@ -72,18 +72,22 @@ module.exports = function setupBuilding(bot, config, addLog, pathfinder, goals) 
 
   async function placeBlock(position, blockType = 'oak_log') {
     try {
+      if (!position || !bot || !bot.blockAt) return false;
+      
       // Find block to place on
-      const refBlock = bot.blockAt(position.offset(0, -1, 0));
+      const refBlock = bot.blockAt(position.offset ? position.offset(0, -1, 0) : position);
       if (!refBlock) return false;
 
       // Equip the block
+      if (!bot.inventory || !bot.inventory.findInventoryItem) return false;
       const item = bot.inventory.findInventoryItem(blockType);
       if (!item) return false;
 
       bot.equip(item, 'hand');
       
       // Place block
-      await bot.placeBlock(refBlock, new (require('vec3'))(0, 1, 0));
+      const Vec3 = require('vec3');
+      await bot.placeBlock(refBlock, new Vec3(0, 1, 0));
       return true;
     } catch (err) {
       return false;

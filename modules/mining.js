@@ -11,11 +11,14 @@ module.exports = function setupMining(bot, config, addLog) {
   addLog('[Mining] Mining system initialized');
 
   async function mineBlock(block) {
-    if (!block) return false;
+    if (!block || !block.position || !block.name) {
+      addLog(`[Mining] No valid block to mine`);
+      return false;
+    }
     
     try {
       isMining = true;
-      addLog(`[Mining] Mining ${block.name} at (${Math.floor(block.position.x)}, ${Math.floor(block.position.y)}, ${Math.floor(block.position.z)})`);
+      addLog(`[Mining] Mining ${block.name}`);
       
       await bot.dig(block);
       addLog(`[Mining] ✓ Mined ${block.name}`);
@@ -29,12 +32,18 @@ module.exports = function setupMining(bot, config, addLog) {
   }
 
   function findNearestBlock(blockName, maxDistance = 64) {
-    const blocks = bot.findBlocks({
-      matching: (block) => block.name === blockName,
-      maxDistance: maxDistance,
-      count: 1
-    });
-    return blocks.length > 0 ? blocks[0] : null;
+    try {
+      if (!bot || !bot.findBlocks) return null;
+      
+      const blocks = bot.findBlocks({
+        matching: (block) => block && block.name === blockName,
+        maxDistance: maxDistance,
+        count: 1
+      });
+      return (blocks && blocks.length > 0) ? blocks[0] : null;
+    } catch (err) {
+      return null;
+    }
   }
 
   function gatherResources(targetCount = 64) {
@@ -43,19 +52,19 @@ module.exports = function setupMining(bot, config, addLog) {
     // Priority: collect logs first (for crafting)
     if ((inventory.oak_log || 0) < targetCount / 4) {
       const logBlock = findNearestBlock('oak_log', 128);
-      if (logBlock) return logBlock;
-    }
-
-    // Then coal for torches
-    if ((inventory.coal || 0) < targetCount / 8) {
-      const coalBlock = findNearestBlock('coal_ore', 128);
-      if (coalBlock) return coalBlock;
+      if (logBlock && logBlock.position) return logBlock;
     }
 
     // Then stone
     if ((inventory.stone || 0) < targetCount / 4) {
       const stoneBlock = findNearestBlock('stone', 128);
-      if (stoneBlock) return stoneBlock;
+      if (stoneBlock && stoneBlock.position) return stoneBlock;
+    }
+
+    // Then coal for torches
+    if ((inventory.coal || 0) < targetCount / 8) {
+      const coalBlock = findNearestBlock('coal_ore', 128);
+      if (coalBlock && coalBlock.position) return coalBlock;
     }
 
     return null;
