@@ -1674,100 +1674,68 @@ function initializeModules(bot, mcData, defaultMove) {
   // ---------- CHAT MESSAGES ----------
   if (config.utils["chat-messages"] && config.utils["chat-messages"].enabled) {
     const messages = config.utils["chat-messages"].messages;
-    let authCompleted = false;
+    if (config.utils["chat-messages"].repeat) {
       let i = 0;
-    let authAttemptCount = 0;
-    let lastAuthAttemptAt = 0;
-    const MAX_AUTH_ATTEMPTS = 6;
-
-    const markAuthSuccess = (reason = "unknown") => {
-      if (authCompleted) return;
-      authCompleted = true;
-      if (authFallbackTimer) {
-        clearTimeout(authFallbackTimer);
-        authFallbackTimer = null;
-      }
-      // Once authenticated, allow command handlers immediately.
-      botState.commandReadyAt = Date.now() + 1000;
-      addLog(`[Auth] Authentication confirmed (${reason})`);
-    };
-
-    const sendAuthSequence = (source = "auto") => {
-      if (authCompleted || !bot || !botState.connected) return;
-      if (authAttemptCount >= MAX_AUTH_ATTEMPTS) {
-        addLog(`[Auth] Max auth attempts reached (${MAX_AUTH_ATTEMPTS})`);
-        return;
-      }
-
-      const now = Date.now();
-      if (now - lastAuthAttemptAt < 4000) return;
-      lastAuthAttemptAt = now;
-      authAttemptCount++;
-
-      addLog(`[Auth] Attempt ${authAttemptCount}/${MAX_AUTH_ATTEMPTS} from ${source}: /register then /login`);
-
-      try {
-        bot.chat(`/register ${password} ${password}`);
-        addLog("[Auth] Sent /register");
-      } catch (e) {
-        addLog(`[Auth] /register failed: ${e.message}`);
-      }
-
-      setTimeout(() => {
-        if (authCompleted || !bot || !botState.connected) return;
-        try {
-          bot.chat(`/login ${password}`);
-          addLog("[Auth] Sent /login");
-        } catch (e) {
-          addLog(`[Auth] /login failed: ${e.message}`);
+      addInterval(() => {
+        if (bot && botState.connected) {
+          bot.chat(messages[i]);
+          botState.lastActivity = Date.now();
+          i = (i + 1) % messages.length;
         }
-      }, 1500);
-    };
+      }, config.utils["chat-messages"]["repeat-delay"] * 1000);
+    } else {
+      messages.forEach((msg, idx) => {
+        setTimeout(() => {
+          if (bot && botState.connected) bot.chat(msg);
+        }, idx * 1000);
+      });
+    }
+  }
+
   // ---------- MOVE TO POSITION ----------
   // FIX: only use position goal if circle-walk is NOT enabled (they fight over pathfinder)
+  // If a global pause is enabled, skip movement and automated goals
   if (config.modules && config.modules.pauseAll) {
-
-      if (
-        msg.includes("successfully logged") ||
-        msg.includes("logged in") ||
-        msg.includes("login successful") ||
-        msg.includes("successfully registered") ||
-        msg.includes("registered successfully") ||
-        msg.includes("welcome")
-      ) {
-        markAuthSuccess("server message");
-        return;
-      }
-
     addLog('[Modules] Global automation pause enabled - skipping movement and AI setup');
-        msg.includes("register or login") ||
-        msg.includes("register/login") ||
   } else {
     if (
       config.position &&
       config.position.enabled &&
-        sendAuthSequence("prompt");
+      !(
         config.movement &&
         config.movement["circle-walk"] &&
         config.movement["circle-walk"].enabled
       )
     ) {
-        sendAuthSequence("prompt");
+      bot.pathfinder.setMovements(defaultMove);
       bot.pathfinder.setGoal(
         new GoalBlock(config.position.x, config.position.y, config.position.z),
       );
-    // Failsafe: if no prompt after 10s, still try auth.
+      addLog("[Position] Navigating to configured position...");
     }
-      if (authCompleted || !bot || !botState.connected) return;
-      addLog("[Auth] No prompt detected after 10s, running auth failsafe");
-      sendAuthSequence("failsafe");
-        } catch (e) {}
+  }
 
-    // Retry auth periodically for servers that are slow to show prompts.
-    addInterval(() => {
-      if (authCompleted || !bot || !botState.connected) return;
-      sendAuthSequence("periodic");
-    }, 20000);
+  // ---------- ANTI-AFK ----------
+  if (!(config.modules && config.modules.pauseAll) && config.utils["anti-afk"] && config.utils["anti-afk"].enabled && !(config.modules && config.modules.disableActions && config.modules.disableActions.antiAfk)) {
+    // Arm swinging
+    addInterval(
+      () => {
+        if (!bot || !botState.connected) return;
+        try {
+          bot.swingArm();
+        } catch (e) {}
+      },
+      10000 + Math.floor(Math.random() * 50000),
+    );
+
+    // Hotbar cycling
+    addInterval(
+      () => {
+        if (!bot || !botState.connected) return;
+        try {
+          const slot = Math.floor(Math.random() * 9);
+          bot.setQuickBarSlot(slot);
+        } catch (e) {}
       },
       30000 + Math.floor(Math.random() * 90000),
     );
@@ -2387,3 +2355,21 @@ addLog(
 addLog("=".repeat(50));
 
 createBot();
+
+// Uptime watchdog: if bot is disconnected and no reconnect is running, force recovery.
+setInterval(() => {
+  if (botState.connected) return;
+  if (isReconnecting) return;
+
+  addLog("[Watchdog] Disconnected with no reconnect in progress - forcing reconnect");
+  try {
+    if (bot) {
+      bot.removeAllListeners();
+      bot.end();
+      bot = null;
+    }
+  } catch (e) {
+    // ignore cleanup errors
+  }
+  scheduleReconnect();
+}, 30000);
