@@ -1,7 +1,7 @@
 {
   "name": "AFK Bot",
   "bot-account": {
-    "username": "Slobot00",
+    "username": "Slobot000",
     "password": "",
     "type": "offline"
   },
@@ -94,5 +94,12 @@
   },
   "chat": {
     "respond": true
+  }
+  ,
+  "connectionCycle": {
+    "enabled": true,
+    "onDurationSeconds": 60,
+    "offDurationSeconds": 300,
+    "startEnabled": true
   }
 }

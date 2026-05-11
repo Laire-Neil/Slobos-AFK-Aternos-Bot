@@ -1179,6 +1179,15 @@ let activeIntervals = [];
 let reconnectTimeoutId = null;
 let connectionTimeoutId = null;
 let isReconnecting = false;
+// Connection cycling (on/off schedule)
+let connectionCycle = {
+  enabled: false,
+  onMs: 60000,
+  offMs: 300000,
+  running: false,
+};
+let cycleSuspend = false;
+let cycleTimers = { offTimer: null, onTimer: null, scheduleTimer: null };
 
 function clearBotTimeouts() {
   if (reconnectTimeoutId) {
@@ -1557,8 +1566,14 @@ function createBot() {
         );
       }
 
-      // ALWAYS reconnect — bot must never leave the server
-      scheduleReconnect();
+        // If cycleSuspend is active (we intentionally disconnected for the cycle), skip auto-reconnect.
+        if (cycleSuspend) {
+          addLog('[Cycle] Intentional disconnect for schedule - skipping auto-reconnect');
+          return;
+        }
+
+        // ALWAYS reconnect — bot must never leave the server
+        scheduleReconnect();
     });
 
     bot.on("error", (err) => {
@@ -2355,6 +2370,57 @@ addLog(
 addLog("=".repeat(50));
 
 createBot();
+
+// Connection cycle manager: disconnect for offMs, connect for onMs periodically
+function startConnectionCycle() {
+  try {
+    const cfg = config.connectionCycle || {};
+    if (!cfg.enabled) return;
+    connectionCycle.enabled = true;
+    connectionCycle.onMs = (cfg.onDurationSeconds || 60) * 1000;
+    connectionCycle.offMs = (cfg.offDurationSeconds || 300) * 1000;
+    connectionCycle.running = true;
+
+    const scheduleNext = () => {
+      if (!connectionCycle.running) return;
+      // If bot isn't connected yet, try again soon
+      if (!bot || !botState.connected) {
+        connectionCycle.scheduleTimer = setTimeout(scheduleNext, 5000);
+        return;
+      }
+
+      addLog(`[Cycle] Connected window: will disconnect after ${connectionCycle.onMs / 1000}s`);
+      // schedule disconnect after onMs
+      cycleTimers.offTimer = setTimeout(() => {
+        if (!bot) return;
+        cycleSuspend = true;
+        addLog(`[Cycle] Disconnecting for ${connectionCycle.offMs / 1000}s (scheduled)`);
+        try {
+          bot.end();
+        } catch (e) {}
+
+        // schedule reconnect after offMs
+        cycleTimers.onTimer = setTimeout(() => {
+          cycleSuspend = false;
+          addLog('[Cycle] Scheduled reconnect now');
+          try {
+            createBot();
+          } catch (e) {}
+          // schedule next cycle after reconnect stabilizes
+          connectionCycle.scheduleTimer = setTimeout(scheduleNext, connectionCycle.onMs + 2000);
+        }, connectionCycle.offMs);
+      }, connectionCycle.onMs);
+    };
+
+    // start initial schedule
+    scheduleNext();
+  } catch (e) {
+    addLog(`[Cycle] startConnectionCycle error: ${e.message}`);
+  }
+}
+
+// start cycle if configured
+startConnectionCycle();
 
 // Uptime watchdog: if bot is disconnected and no reconnect is running, force recovery.
 setInterval(() => {
